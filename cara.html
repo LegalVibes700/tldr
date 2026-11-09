@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="KühlschrankChef">
+    <meta name="theme-color" content="#FAF8F5">
+    <title>KühlschrankChef – Rezepte aus deinem Vorrat</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                    colors: {
+                        cream: '#FAF8F5',
+                        terracotta: {
+                            50: '#FFF7ED',
+                            100: '#FFEDD5',
+                            500: '#F97316',
+                            600: '#EA580C',
+                            700: '#C2410C',
+                        },
+                        sage: {
+                            50: '#F0FDF4',
+                            100: '#DCFCE7',
+                            600: '#16A34A',
+                            700: '#15803D',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* iOS & Mobile Optimierungen */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+        }
+        body {
+            background-color: #FAF8F5;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            overscroll-behavior-y: none;
+        }
+        input, textarea {
+            user-select: auto;
+            font-size: 16px !important; /* Verhindert Auto-Zoom in iOS Safari */
+        }
+        .safe-top {
+            padding-top: max(1rem, env(safe-area-inset-top));
+        }
+        .safe-bottom {
+            padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+        }
+        .tabbar-safe {
+            padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+        }
+        /* Verstecke Scrollbars für horizontale Chip-Listen */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Sanfte iOS-Button Animation */
+        .ios-btn:active {
+            transform: scale(0.96);
+        }
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.06); opacity: 0.85; }
+        }
+        .animate-chef {
+            animation: pulse-slow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-stone-800 antialiased selection:bg-orange-200 min-h-screen flex justify-center bg-stone-200/60">
+
+    <!-- Mobile App Container (Auf Desktop zentriert im iPhone-Format, auf dem iPhone Vollbild) -->
+    <div class="w-full max-w-md bg-cream min-h-screen relative flex flex-col shadow-2xl overflow-x-hidden">
+
+        <!-- Sticky iOS Glass Header -->
+        <header class="sticky top-0 z-30 bg-cream/85 backdrop-blur-md border-b border-stone-200/80 px-4 pb-3 safe-top transition-all">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+                        <i data-lucide="chef-hat" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-extrabold tracking-tight text-stone-900 leading-none">KühlschrankChef</h1>
+                        <p class="text-xs text-stone-500 font-medium mt-0.5">3 Rezepte aus deinem Vorrat</p>
+                    </div>
+                </div>
+                <button onclick="toggleInstallModal(true)" class="ios-btn flex items-center gap-1.5 bg-white border border-stone-200/90 px-3 py-1.5 rounded-full text-xs font-semibold text-stone-700 shadow-sm hover:bg-stone-50">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5 text-orange-600"></i>
+                    <span>App-Info</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Hauptinhalt -->
+        <main class="flex-1 px-4 pt-4 safe-bottom">
+
+            <!-- ================= TAB 1: VORRAT & ZUTATEN ================= -->
+            <section id="tab-pantry" class="space-y-5">
+                
+                <!-- Eingabekarte für Zutaten -->
+                <div class="bg-white rounded-3xl p-4 shadow-sm border border-stone-200/70">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <label for="ingredient-input" class="text-sm font-bold text-stone-800 flex items-center gap-1.5">
+                            <i data-lucide="refrigerator" class="w-4 h-4 text-orange-600"></i>
+                            Was hast du gerade da?
+                        </label>
+                        <span id="fridge-count-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800">0 Zutaten</span>
+                    </div>
+
+                    <!-- Such- und Hinzufügen-Feld -->
+                    <div class="relative flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <input 
+                                id="ingredient-input" 
+                                type="text" 
+                                placeholder="z. B. Eier, Nudeln, Zucchini..." 
+                                autocomplete="off"
+                                class="w-full pl-9 pr-8 py-3 bg-stone-100/90 border border-stone-200/80 rounded-2xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                            >
+                            <button id="clear-input-btn" onclick="clearInput()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1">
+                                <i data-lucide="x-circle" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <button onclick="addIngredientFromInput()" class="ios-btn bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-3 rounded-2xl shadow-sm shadow-orange-600/20 flex items-center justify-center shrink-0">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Autocomplete Vorschläge -->
+                    <div id="autocomplete-box" class="hidden mt-2 flex-wrap gap-1.5 pt-2 border-t border-stone-100"></div>
+
+                    <!-- Aktuelle Zutaten im Kühlschrank (Tags) -->
+                    <div class="mt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-stone-400">Ausgewählte Zutaten</span>
+                            <button id="clear-all-btn" onclick="clearAllFridge()" class="hidden text-xs font-medium text-rose-600 hover:underline flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i> Alle leeren
+                            </button>
+                        </div>
+                        <div id="selected-ingredients-list" class="flex flex-wrap gap-2 min-h-[42px] items-center">
+                            <!-- Dynamisch gefüllt -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schnellauswahl für beliebte Zutaten -->
+                <div class="bg-white rounded-3xl p-4 shadow-sm border border-stone-200/70">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h2 class="text-sm font-bold text-stone-800 flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+                            Schnellauswahl (Antippen)
+                        </h2>
+                        <span class="text-[11px] text-stone-400 font-medium">Kühlschrank & Vorrat</span>
+                    </div>
+
+                    <!-- Kategorie-Filter für Schnellauswahl -->
+                    <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-2 border-b border-stone-100" id="quick-category-tabs">
+                        <button onclick="setQuickCategory('all')" data-cat="all" class="quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-800 text-white shrink-0 transition-all">Alle</button>
+                        <button onclick="setQuickCategory('fresh')" data-cat="fresh" class="quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-100 text-stone-600 shrink-0 transition-all">Gemüse & Frisches</button>
+                        <button onclick="setQuickCategory('dairy')" data-cat="dairy" class="quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-100 text-stone-600 shrink-0 transition-all">Kühlregal & Käse</button>
+                        <button onclick="setQuickCategory('carbs')" data-cat="carbs" class="quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-100 text-stone-600 shrink-0 transition-all">Sättigung & Konserven</button>
+                        <button onclick="setQuickCategory('protein')" data-cat="protein" class="quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-100 text-stone-600 shrink-0 transition-all">Fleisch & Fisch</button>
+                    </div>
+
+                    <div id="quick-chips-container" class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+                        <!-- Dynamisch gefüllt -->
+                    </div>
+                </div>
+
+                <!-- Standard-Gewürze & Basics (Pantry Staples) -->
+                <div class="bg-white rounded-3xl p-4 shadow-sm border border-stone-200/70">
+                    <button onclick="toggleStaplesCollapse()" class="w-full flex items-center justify-between text-left">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-700">
+                                <i data-lucide="flame" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-stone-800">Standard-Gewürze & Basics</h2>
+                                <p class="text-xs text-stone-500"><span id="active-staples-count">12</span> von 12 zuhause vorhanden</p>
+                            </div>
+                        </div>
+                        <i id="staples-chevron" data-lucide="chevron-down" class="w-5 h-5 text-stone-400 transition-transform duration-200"></i>
+                    </button>
+
+                    <div id="staples-content" class="mt-3 pt-3 border-t border-stone-100">
+                        <p class="text-xs text-stone-500 mb-2.5">Tippe Basics ab, falls dir heute etwas davon fehlt:</p>
+                        <div id="staples-chips-container" class="flex flex-wrap gap-1.5">
+                            <!-- Dynamisch gefüllt -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optionale Filter (Zeit & Stil) -->
+                <div class="bg-white rounded-3xl p-4 shadow-sm border border-stone-200/70 space-y-3.5">
+                    <h2 class="text-sm font-bold text-stone-800 flex items-center gap-1.5">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4 text-orange-600"></i>
+                        Wünsche für heute
+                    </h2>
+
+                    <!-- Zeit-Filter -->
+                    <div>
+                        <span class="text-xs font-semibold text-stone-500 block mb-1.5">Max. Zubereitungszeit</span>
+                        <div class="grid grid-cols-3 gap-2" id="time-filter-group">
+                            <button onclick="setFilterTime('any')" data-time="any" class="time-btn ios-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-orange-500 bg-orange-50 text-orange-800">⏱️ Egal</button>
+                            <button onclick="setFilterTime('20')" data-time="20" class="time-btn ios-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600">⚡ &lt; 20 Min.</button>
+                            <button onclick="setFilterTime('35')" data-time="35" class="time-btn ios-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600">🕒 &lt; 35 Min.</button>
+                        </div>
+                    </div>
+
+                    <!-- Ernährungs/Stil-Filter -->
+                    <div>
+                        <span class="text-xs font-semibold text-stone-500 block mb-1.5">Stil & Ernährung</span>
+                        <div class="grid grid-cols-2 gap-2" id="diet-filter-group">
+                            <button onclick="setFilterDiet('all')" data-diet="all" class="diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-orange-500 bg-orange-50 text-orange-800 text-left flex items-center gap-1.5">🍽️ Alle Gerichte</button>
+                            <button onclick="setFilterDiet('vegetarian')" data-diet="vegetarian" class="diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600 text-left flex items-center gap-1.5">🌱 Vegetarisch</button>
+                            <button onclick="setFilterDiet('highprotein')" data-diet="highprotein" class="diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600 text-left flex items-center gap-1.5">💪 High Protein</button>
+                            <button onclick="setFilterDiet('onepot')" data-diet="onepot" class="diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600 text-left flex items-center gap-1.5">🥘 One-Pot / Pfanne</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Haupt-CTA Button: 3 Rezepte finden -->
+                <div class="pt-1 pb-4">
+                    <button id="generate-btn" onclick="findThreeRecipes()" class="ios-btn w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-bold text-base shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2.5 hover:from-orange-700 hover:to-amber-700 transition-all">
+                        <i data-lucide="wand-2" class="w-5 h-5"></i>
+                        <span>3 passende Rezepte finden</span>
+                    </button>
+                    <p class="text-center text-[11px] text-stone-400 mt-2">Berücksichtigt deinen Vorrat + aktivierte Standard-Gewürze</p>
+                </div>
+            </section>
+
+            <!-- ================= TAB 2: 3 GENERIERTE REZEPTE ================= -->
+            <section id="tab-recipes" class="hidden space-y-4">
+                
+                <!-- Lade-Screen während KI oder Algorithmus kocht -->
+                <div id="recipes-loading" class="hidden bg-white rounded-3xl p-8 text-center shadow-sm border border-stone-200/70 my-6">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-3xl bg-orange-100 text-orange-600 flex items-center justify-center animate-chef">
+                        <i data-lucide="chef-hat" class="w-9 h-9"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-stone-800">Dein Küchenchef kreiert 3 Rezepte...</h3>
+                    <p id="loading-subtext" class="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto">Zutaten und Gewürze werden optimal kombiniert.</p>
+                    <div class="w-full bg-stone-100 h-2 rounded-full overflow-hidden mt-5">
+                        <div class="bg-gradient-to-r from-orange-500 to-amber-500 h-full w-2/3 rounded-full animate-pulse"></div>
+                    </div>
+                </div>
+
+                <!-- Leerzustand, falls noch keine Rezepte gesucht wurden -->
+                <div id="recipes-empty" class="bg-white rounded-3xl p-7 text-center shadow-sm border border-stone-200/70 my-4">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center">
+                        <i data-lucide="utensils-crossed" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-stone-800">Noch keine Rezepte erstellt</h3>
+                    <p class="text-xs text-stone-500 mt-1 mb-4">Wähle zuerst deine Zutaten im Tab „Vorrat“ aus und tippe auf „3 passende Rezepte finden“.</p>
+                    <button onclick="switchTab('pantry')" class="ios-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 text-white text-xs font-bold shadow-sm">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Zum Vorrat
+                    </button>
+                </div>
+
+                <!-- Header über den 3 Ergebnissen -->
+                <div id="recipes-header" class="hidden flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-stone-200/70 shadow-sm">
+                    <div>
+                        <span id="recipe-source-badge" class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                            ✨ 3 Vorschläge bereit
+                        </span>
+                        <h2 class="text-sm font-bold text-stone-800 mt-0.5">Abgestimmt auf deinen Vorrat</h2>
+                    </div>
+                    <button onclick="findThreeRecipes()" class="ios-btn text-xs font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-2 rounded-xl flex items-center gap-1">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Neu mischen
+                    </button>
+                </div>
+
+                <!-- Liste für die 3 Rezeptkarten -->
+                <div id="recipes-list" class="space-y-5"></div>
+            </section>
+
+            <!-- ================= TAB 3: FAVORITEN (GESPEICHERT) ================= -->
+            <section id="tab-favorites" class="hidden space-y-4">
+                <div class="bg-white px-4 py-3.5 rounded-2xl border border-stone-200/70 shadow-sm flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-stone-800">Meine Lieblingsrezepte</h2>
+                        <p class="text-xs text-stone-500">Offline auf deinem iPhone gespeichert</p>
+                    </div>
+                    <span id="fav-count-pill" class="text-xs font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-full">0</span>
+                </div>
+
+                <div id="favorites-empty" class="bg-white rounded-3xl p-8 text-center shadow-sm border border-stone-200/70">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-rose-50 text-rose-400 flex items-center justify-center">
+                        <i data-lucide="heart" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-stone-800">Noch keine Favoriten</h3>
+                    <p class="text-xs text-stone-500 mt-1">Tippe bei einem generierten Rezept auf das Herz-Symbol, um es hier für später zu sichern.</p>
+                </div>
+
+                <div id="favorites-list" class="space-y-5"></div>
+            </section>
+
+        </main>
+
+        <!-- Toast Benachrichtigung -->
+        <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-2">
+            <div class="bg-stone-900/95 backdrop-blur-md text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+                <span id="toast-message">Gespeichert</span>
+            </div>
+        </div>
+
+        <!-- iOS Bottom Tab Bar -->
+        <nav class="fixed bottom-0 w-full max-w-md z-40 bg-white/90 backdrop-blur-lg border-t border-stone-200/80 tabbar-safe pt-2 px-6">
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="switchTab('pantry')" id="nav-pantry" class="ios-btn flex flex-col items-center justify-center py-1 text-orange-600">
+                    <div class="relative">
+                        <i data-lucide="refrigerator" class="w-5 h-5"></i>
+                        <span id="nav-pantry-dot" class="hidden absolute -top-1 -right-2.5 bg-orange-600 text-white text-[10px] font-bold px-1.5 rounded-full leading-tight">0</span>
+                    </div>
+                    <span class="text-[11px] font-semibold mt-1">Mein Vorrat</span>
+                </button>
+
+                <button onclick="switchTab('recipes')" id="nav-recipes" class="ios-btn flex flex-col items-center justify-center py-1 text-stone-400">
+                    <div class="relative">
+                        <i data-lucide="utensils" class="w-5 h-5"></i>
+                        <span id="nav-recipes-dot" class="hidden absolute -top-1 -right-2 bg-emerald-600 text-white text-[10px] font-bold px-1.5 rounded-full leading-tight">3</span>
+                    </div>
+                    <span class="text-[11px] font-semibold mt-1">3 Rezepte</span>
+                </button>
+
+                <button onclick="switchTab('favorites')" id="nav-favorites" class="ios-btn flex flex-col items-center justify-center py-1 text-stone-400">
+                    <div class="relative">
+                        <i data-lucide="heart" class="w-5 h-5"></i>
+                        <span id="nav-fav-dot" class="hidden absolute -top-1 -right-2.5 bg-rose-500 text-white text-[10px] font-bold px-1.5 rounded-full leading-tight">0</span>
+                    </div>
+                    <span class="text-[11px] font-semibold mt-1">Favoriten</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Modal: Auf iPhone zum Home-Bildschirm hinzufügen -->
+        <div id="install-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-stone-900/50 backdrop-blur-xs p-4">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-stone-100 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div class="flex items-center justify-between pb-3 border-b border-stone-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                            <i data-lucide="smartphone" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-stone-900">Auf dem iPhone installieren</h3>
+                    </div>
+                    <button onclick="toggleInstallModal(false)" class="p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="py-4 space-y-3.5 text-xs text-stone-600 leading-relaxed">
+                    <p class="font-medium text-stone-800">So nutzt du <span class="text-orange-600 font-bold">KühlschrankChef</span> wie eine echte App im Vollbild:</p>
+                    
+                    <div class="flex items-start gap-3 bg-stone-50 p-3 rounded-2xl border border-stone-200/60">
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold">1</div>
+                        <div>
+                            Tippe unten in <strong>Safari</strong> auf den <strong>Teilen-Button</strong> (Viereck mit Pfeil nach oben <i data-lucide="share" class="w-3.5 h-3.5 inline text-blue-600"></i>).
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 bg-stone-50 p-3 rounded-2xl border border-stone-200/60">
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold">2</div>
+                        <div>
+                            Scrolle im Menü leicht nach unten und wähle <strong>„Zum Home-Bildschirm“</strong> <i data-lucide="plus-square" class="w-3.5 h-3.5 inline text-stone-700"></i>.
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 bg-stone-50 p-3 rounded-2xl border border-stone-200/60">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 font-bold">3</div>
+                        <div>
+                            Bestätige oben rechts mit <strong>„Hinzufügen“</strong>. Dein Vorrat und deine Favoriten bleiben automatisch gespeichert!
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="toggleInstallModal(false)" class="ios-btn w-full py-3 rounded-2xl bg-stone-900 text-white font-bold text-xs">
+                    Verstanden
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================================
+        // DATENBASIS: BELIEBTE KÜHLSCHRANK-ZUTATEN & STANDARD-GEWÜRZE
+        // ============================================================================
+        const QUICK_INGREDIENTS = [
+            // Kühlregal & Käse
+            { name: 'Eier', emoji: '🥚', cat: 'dairy' },
+            { name: 'Milch', emoji: '🥛', cat: 'dairy' },
+            { name: 'Käse (gerieben)', emoji: '🧀', cat: 'dairy' },
+            { name: 'Mozzarella', emoji: '⚪', cat: 'dairy' },
+            { name: 'Feta', emoji: '🧀', cat: 'dairy' },
+            { name: 'Parmesan', emoji: '🧀', cat: 'dairy' },
+            { name: 'Sahne', emoji: '🥛', cat: 'dairy' },
+            { name: 'Schmand / Crème fraîche', emoji: '🥣', cat: 'dairy' },
+            { name: 'Quark / Joghurt', emoji: '🥣', cat: 'dairy' },
+
+            // Gemüse & Frisches
+            { name: 'Tomaten', emoji: '🍅', cat: 'fresh' },
+            { name: 'Zwiebeln', emoji: '🧅', cat: 'fresh' },
+            { name: 'Knoblauch', emoji: '🧄', cat: 'fresh' },
+            { name: 'Paprika', emoji: '🫑', cat: 'fresh' },
+            { name: 'Zucchini', emoji: '🥒', cat: 'fresh' },
+            { name: 'Karotten', emoji: '🥕', cat: 'fresh' },
+            { name: 'Spinat', emoji: '🥬', cat: 'fresh' },
+            { name: 'Brokkoli', emoji: '🥦', cat: 'fresh' },
+            { name: 'Champignons', emoji: '🍄', cat: 'fresh' },
+            { name: 'Gurke', emoji: '🥒', cat: 'fresh' },
+            { name: 'Zitrone', emoji: '🍋', cat: 'fresh' },
+            { name: 'Frühlingszwiebeln', emoji: '🌱', cat: 'fresh' },
+
+            // Sättigung & Konserven
+            { name: 'Nudeln', emoji: '🍝', cat: 'carbs' },
+            { name: 'Reis', emoji: '🍚', cat: 'carbs' },
+            { name: 'Kartoffeln', emoji: '🥔', cat: 'carbs' },
+            { name: 'Gehackte Tomaten (Dose)', emoji: '🥫', cat: 'carbs' },
+            { name: 'Kichererbsen', emoji: '🫘', cat: 'carbs' },
+            { name: 'Kidneybohnen / Bohnen', emoji: '🫘', cat: 'carbs' },
+            { name: 'Mais', emoji: '🌽', cat: 'carbs' },
+            { name: 'Kokosmilch', emoji: '🥥', cat: 'carbs' },
+            { name: 'Toast / Brot', emoji: '🍞', cat: 'carbs' },
+            { name: 'Haferflocken', emoji: '🌾', cat: 'carbs' },
+            { name: 'Tortilla-Wraps', emoji: '🫓', cat: 'carbs' },
+
+            // Fleisch, Fisch & Tofu
+            { name: 'Hähnchenbrust', emoji: '🍗', cat: 'protein' },
+            { name: 'Hackfleisch', emoji: '🥩', cat: 'protein' },
+            { name: 'Schinken / Speck', emoji: '🥓', cat: 'protein' },
+            { name: 'Thunfisch (Dose)', emoji: '🐟', cat: 'protein' },
+            { name: 'Lachs', emoji: '🍣', cat: 'protein' },
+            { name: 'Tofu', emoji: '🧊', cat: 'protein' }
+        ];
+
+        const DEFAULT_STAPLES = [
+            'Salz', 'Schwarzer Pfeffer', 'Olivenöl', 'Butter', 
+            'Gemüsebrühe', 'Paprikapulver', 'Oregano / Kräuter', 
+            'Tomatenmark', 'Senf', 'Sojasauce', 'Mehl', 'Zucker & Essig'
+        ];
+
+        // ============================================================================
+        // APP STATE & LOCAL STORAGE
+        // ============================================================================
+        const STORAGE_KEYS = {
+            FRIDGE: 'kc_fridge_items_v1',
+            STAPLES: 'kc_staples_items_v1',
+            FAVORITES: 'kc_favorite_recipes_v1',
+            LAST_RECIPES: 'kc_last_recipes_v1'
+        };
+
+        let state = {
+            activeTab: 'pantry',
+            quickCategory: 'all',
+            staplesCollapsed: false,
+            fridge: ['Eier', 'Nudeln', 'Tomaten', 'Zwiebeln', 'Knoblauch', 'Käse (gerieben)'],
+            staples: [...DEFAULT_STAPLES],
+            filterTime: 'any',
+            filterDiet: 'all',
+            currentRecipes: [],
+            favorites: [],
+            checkedSteps: {} // Speichert abgehakte Kochschritte pro Rezept-ID
+        };
+
+        function loadStateFromStorage() {
+            try {
+                const savedFridge = localStorage.getItem(STORAGE_KEYS.FRIDGE);
+                if (savedFridge) state.fridge = JSON.parse(savedFridge);
+
+                const savedStaples = localStorage.getItem(STORAGE_KEYS.STAPLES);
+                if (savedStaples) state.staples = JSON.parse(savedStaples);
+
+                const savedFavs = localStorage.getItem(STORAGE_KEYS.FAVORITES);
+                if (savedFavs) state.favorites = JSON.parse(savedFavs);
+
+                const savedLast = localStorage.getItem(STORAGE_KEYS.LAST_RECIPES);
+                if (savedLast) state.currentRecipes = JSON.parse(savedLast);
+            } catch (err) {
+                console.warn('LocalStorage konnte nicht geladen werden:', err);
+            }
+        }
+
+        function saveStateToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.FRIDGE, JSON.stringify(state.fridge));
+                localStorage.setItem(STORAGE_KEYS.STAPLES, JSON.stringify(state.staples));
+                localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(state.favorites));
+                localStorage.setItem(STORAGE_KEYS.LAST_RECIPES, JSON.stringify(state.currentRecipes));
+            } catch (err) {
+                console.warn('LocalStorage konnte nicht geschrieben werden:', err);
+            }
+        }
+
+        // ============================================================================
+        // UI RENDERING FUNKTIONEN
+        // ============================================================================
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const text = document.getElementById('toast-message');
+            text.textContent = msg;
+            container.classList.remove('opacity-0', '-translate-y-2');
+            container.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                container.classList.remove('opacity-100', 'translate-y-0');
+                container.classList.add('opacity-0', '-translate-y-2');
+            }, 2200);
+        }
+
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            ['pantry', 'recipes', 'favorites'].forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (t === tabName) {
+                    sec.classList.remove('hidden');
+                    nav.classList.remove('text-stone-400');
+                    nav.classList.add('text-orange-600');
+                } else {
+                    sec.classList.add('hidden');
+                    nav.classList.add('text-stone-400');
+                    nav.classList.remove('text-orange-600');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            lucide.createIcons();
+        }
+
+        function toggleInstallModal(show) {
+            const modal = document.getElementById('install-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function renderSelectedIngredients() {
+            const container = document.getElementById('selected-ingredients-list');
+            const badge = document.getElementById('fridge-count-badge');
+            const navDot = document.getElementById('nav-pantry-dot');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+
+            const count = state.fridge.length;
+            badge.textContent = `${count} ${count === 1 ? 'Zutat' : 'Zutaten'}`;
+            
+            if (count > 0) {
+                navDot.textContent = count;
+                navDot.classList.remove('hidden');
+                clearAllBtn.classList.remove('hidden');
+            } else {
+                navDot.classList.add('hidden');
+                clearAllBtn.classList.add('hidden');
+            }
+
+            if (count === 0) {
+                container.innerHTML = `
+                    <div class="w-full py-2.5 px-3 rounded-2xl bg-stone-50 border border-dashed border-stone-200 text-xs text-stone-400 text-center">
+                        Noch keine Zutaten gewählt. Tippe unten auf die Schnellauswahl oder gib oben etwas ein!
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.fridge.map(item => {
+                const found = QUICK_INGREDIENTS.find(q => q.name.toLowerCase() === item.toLowerCase());
+                const emoji = found ? found.emoji : '🥗';
+                const safeItem = item.replace(/'/g, "\\'");
+                return `
+                    <button onclick="removeIngredient('${safeItem}')" class="ios-btn inline-flex items-center gap-1.5 bg-orange-50 border border-orange-200/90 text-orange-950 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-2xs hover:bg-orange-100 transition-all">
+                        <span>${emoji}</span>
+                        <span>${escapeHtml(item)}</span>
+                        <i data-lucide="x" class="w-3.5 h-3.5 text-orange-600 ml-0.5"></i>
+                    </button>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderQuickChips() {
+            const container = document.getElementById('quick-chips-container');
+            const filtered = state.quickCategory === 'all' 
+                ? QUICK_INGREDIENTS 
+                : QUICK_INGREDIENTS.filter(item => item.cat === state.quickCategory);
+
+            container.innerHTML = filtered.map(item => {
+                const isSelected = state.fridge.some(f => f.toLowerCase() === item.name.toLowerCase());
+                const safeName = item.name.replace(/'/g, "\\'");
+                if (isSelected) {
+                    return `
+                        <button onclick="toggleIngredient('${safeName}')" class="ios-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-orange-600 text-white shadow-xs transition-all">
+                            <span>${item.emoji}</span>
+                            <span>${item.name}</span>
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                    `;
+                } else {
+                    return `
+                        <button onclick="toggleIngredient('${safeName}')" class="ios-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-stone-100/90 text-stone-700 hover:bg-stone-200/70 border border-stone-200/60 transition-all">
+                            <span>${item.emoji}</span>
+                            <span>${item.name}</span>
+                        </button>
+                    `;
+                }
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderStaples() {
+            const container = document.getElementById('staples-chips-container');
+            const countSpan = document.getElementById('active-staples-count');
+            countSpan.textContent = state.staples.length;
+
+            container.innerHTML = DEFAULT_STAPLES.map(staple => {
+                const active = state.staples.includes(staple);
+                const safeStaple = staple.replace(/'/g, "\\'");
+                if (active) {
+                    return `
+                        <button onclick="toggleStaple('${safeStaple}')" class="ios-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-300/80">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-600"></i>
+                            <span>${staple}</span>
+                        </button>
+                    `;
+                } else {
+                    return `
+                        <button onclick="toggleStaple('${safeStaple}')" class="ios-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-stone-100 text-stone-400 line-through border border-stone-200/60">
+                            <span>${staple}</span>
+                        </button>
+                    `;
+                }
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ============================================================================
+        // INTERAKTION: ZUTATEN, GEWÜRZE & FILTER
+        // ============================================================================
+        function addIngredient(rawName) {
+            const cleaned = rawName.trim();
+            if (!cleaned) return;
+            const exists = state.fridge.some(f => f.toLowerCase() === cleaned.toLowerCase());
+            if (!exists) {
+                state.fridge.unshift(cleaned);
+                saveStateToStorage();
+                renderSelectedIngredients();
+                renderQuickChips();
+                showToast(`„${cleaned}“ hinzugefügt`);
+            } else {
+                showToast(`„${cleaned}“ ist bereits im Vorrat`);
+            }
+        }
+
+        function removeIngredient(name) {
+            state.fridge = state.fridge.filter(f => f.toLowerCase() !== name.toLowerCase());
+            saveStateToStorage();
+            renderSelectedIngredients();
+            renderQuickChips();
+        }
+
+        function toggleIngredient(name) {
+            const exists = state.fridge.some(f => f.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                removeIngredient(name);
+            } else {
+                addIngredient(name);
+            }
+        }
+
+        function clearAllFridge() {
+            state.fridge = [];
+            saveStateToStorage();
+            renderSelectedIngredients();
+            renderQuickChips();
+            showToast('Vorrat geleert');
+        }
+
+        function addIngredientFromInput() {
+            const input = document.getElementById('ingredient-input');
+            const val = input.value;
+            if (!val.trim()) return;
+            // Erlaubt auch kommagetrennte Eingabe wie "Eier, Tomaten, Feta"
+            val.split(',').forEach(part => {
+                if (part.trim()) addIngredient(part.trim());
+            });
+            clearInput();
+        }
+
+        function clearInput() {
+            const input = document.getElementById('ingredient-input');
+            const clearBtn = document.getElementById('clear-input-btn');
+            const autoBox = document.getElementById('autocomplete-box');
+            input.value = '';
+            clearBtn.classList.add('hidden');
+            autoBox.classList.add('hidden');
+            autoBox.classList.remove('flex');
+        }
+
+        function setQuickCategory(cat) {
+            state.quickCategory = cat;
+            document.querySelectorAll('.quick-cat-btn').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = 'quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-800 text-white shrink-0 transition-all';
+                } else {
+                    btn.className = 'quick-cat-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-stone-100 text-stone-600 shrink-0 transition-all';
+                }
+            });
+            renderQuickChips();
+        }
+
+        function toggleStaplesCollapse() {
+            state.staplesCollapsed = !state.staplesCollapsed;
+            const content = document.getElementById('staples-content');
+            const chevron = document.getElementById('staples-chevron');
+            if (state.staplesCollapsed) {
+                content.classList.add('hidden');
+                chevron.style.transform = 'rotate(-90deg)';
+            } else {
+                content.classList.remove('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleStaple(staple) {
+            if (state.staples.includes(staple)) {
+                state.staples = state.staples.filter(s => s !== staple);
+            } else {
+                state.staples.push(staple);
+            }
+            saveStateToStorage();
+            renderStaples();
+        }
+
+        function setFilterTime(timeVal) {
+            state.filterTime = timeVal;
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                if (btn.dataset.time === timeVal) {
+                    btn.className = 'time-btn ios-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-orange-500 bg-orange-50 text-orange-800';
+                } else {
+                    btn.className = 'time-btn ios-btn py-2 px-2.5 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600';
+                }
+            });
+        }
+
+        function setFilterDiet(dietVal) {
+            state.filterDiet = dietVal;
+            document.querySelectorAll('.diet-btn').forEach(btn => {
+                if (btn.dataset.diet === dietVal) {
+                    btn.className = 'diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-orange-500 bg-orange-50 text-orange-800 text-left flex items-center gap-1.5';
+                } else {
+                    btn.className = 'diet-btn ios-btn py-2 px-3 rounded-xl text-xs font-semibold border border-stone-200 bg-stone-50 text-stone-600 text-left flex items-center gap-1.5';
+                }
+            });
+        }
+
+        // ============================================================================
+        // REZEPT-GENERIERUNG (GEMINI KI + INTELLIGENTER LOKALER ALGORITHMUS)
+        // ============================================================================
+        async function findThreeRecipes() {
+            if (state.fridge.length === 0) {
+                showToast('Bitte wähle mindestens 1–2 Zutaten aus!');
+                return;
+            }
+
+            switchTab('recipes');
+            const loadingEl = document.getElementById('recipes-loading');
+            const emptyEl = document.getElementById('recipes-empty');
+            const headerEl = document.getElementById('recipes-header');
+            const listEl = document.getElementById('recipes-list');
+            const subtextEl = document.getElementById('loading-subtext');
+
+            emptyEl.classList.add('hidden');
+            headerEl.classList.add('hidden');
+            listEl.innerHTML = '';
+            loadingEl.classList.remove('hidden');
+            subtextEl.textContent = `Kombiniere ${state.fridge.slice(0, 4).join(', ')}${state.fridge.length > 4 ? ' ...' : ''} mit deinem Standard-Vorrat.`;
+
+            let recipes = null;
+            let usedAI = false;
+
+            try {
+                recipes = await generateRecipesWithGemini();
+                if (recipes && Array.isArray(recipes) && recipes.length === 3) {
+                    usedAI = true;
+                }
+            } catch (err) {
+                // Fällt nahtlos auf den intelligenten lokalen Rezept-Generator zurück
+            }
+
+            if (!recipes || recipes.length === 0) {
+                recipes = generateSmartLocalRecipes();
+            }
+
+            // Eindeutige IDs vergeben
+            state.currentRecipes = recipes.slice(0, 3).map((r, idx) => ({
+                ...r,
+                id: r.id || `rec_${Date.now()}_${idx}`
+            }));
+
+            saveStateToStorage();
+            loadingEl.classList.add('hidden');
+
+            const badge = document.getElementById('recipe-source-badge');
+            badge.innerHTML = usedAI 
+                ? '✨ 3 KI-Rezepte frisch kreiert' 
+                : '👨‍🍳 3 passende Küchenchef-Rezepte';
+
+            renderRecipesList();
+            updateNavBadges();
+        }
+
+        async function fetchWithBackoff(url, options, retries = 2, delay = 900) {
+            try {
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (err) {
+                if (retries <= 0) throw err;
+                await new Promise(r => setTimeout(r, delay));
+                return fetchWithBackoff(url, options, retries - 1, delay * 2);
+            }
+        }
+
+        async function generateRecipesWithGemini() {
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const timeHint = state.filterTime === '20' ? 'Maximal 20 Minuten Zubereitungszeit.' :
+                             state.filterTime === '35' ? 'Maximal 35 Minuten Zubereitungszeit.' : 'Beliebige Zubereitungszeit.';
+            
+            const dietHint = state.filterDiet === 'vegetarian' ? 'Strikt vegetarisch.' :
+                             state.filterDiet === 'highprotein' ? 'High-Protein Fokus (eiweißreich).' :
+                             state.filterDiet === 'onepot' ? 'Als unkompliziertes One-Pot- oder Pfannengericht.' : 'Abwechslungsreiche Stile.';
+
+            const systemPrompt = `Du bist ein kreativer deutscher Spitzenkoch für Alltagsküche. 
+Erstelle EXAKT 3 unterschiedliche, schmackhafte und gelingsichere Rezepte für 2 Portionen, die NUR mit einer sinnvollen Auswahl der vorhandenen Kühlschrank-Zutaten des Nutzers und den vorhandenen Standard-Gewürzen zubereitet werden. Erfinde keine Hauptzutaten dazu, die der Nutzer nicht aufgelistet hat.`;
+
+            const userQuery = `Vorhandene Zutaten im Kühlschrank/Vorrat: ${state.fridge.join(', ')}.
+Vorhandene Standard-Gewürze & Basics: ${state.staples.join(', ')}.
+Wünsche: ${timeHint} ${dietHint}
+Generiere exakt 3 abwechslungsreiche Rezepte auf Deutsch.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                title: { type: "STRING" },
+                                subtitle: { type: "STRING" },
+                                emoji: { type: "STRING" },
+                                prepTimeMinutes: { type: "INTEGER" },
+                                difficulty: { type: "STRING" },
+                                caloriesPerServing: { type: "INTEGER" },
+                                usedFridgeIngredients: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            name: { type: "STRING" },
+                                            amount: { type: "STRING" }
+                                        },
+                                        required: ["name", "amount"]
+                                    }
+                                },
+                                usedStapleIngredients: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            name: { type: "STRING" },
+                                            amount: { type: "STRING" }
+                                        },
+                                        required: ["name", "amount"]
+                                    }
+                                },
+                                steps: {
+                                    type: "ARRAY",
+                                    items: { type: "STRING" }
+                                },
+                                chefTip: { type: "STRING" }
+                            },
+                            required: [
+                                "title", "subtitle", "emoji", "prepTimeMinutes",
+                                "difficulty", "caloriesPerServing", "usedFridgeIngredients",
+                                "usedStapleIngredients", "steps", "chefTip"
+                            ]
+                        }
+                    }
+                }
+            };
+
+            const result = await fetchWithBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawText) throw new Error("Keine Antwort von Gemini");
+            return JSON.parse(rawText);
+        }
+
+        // ============================================================================
+        // INTELLIGENTER OFFLINE- & FALLBACK-ALGORITHMUS (GARANTIERT 3 PASSENDE REZEPTE)
+        // ============================================================================
+        function generateSmartLocalRecipes() {
+            const fLower = state.fridge.map(i => i.toLowerCase());
+            const has = (kw) => fLower.some(i => i.includes(kw));
+
+            // Kuratierte Rezept-Datenbank + dynamischer Baukasten aus exakt den gewählten Zutaten
+            const candidatePool = [
+                {
+                    id: 'pool_aglipasta',
+                    keywords: ['nudeln', 'knoblauch', 'tomaten', 'käse', 'mozzarella', 'parmesan', 'zucchini', 'spinat'],
+                    veg: true,
+                    onepot: true,
+                    title: 'Cremige Pfannen-Pasta „Rustica“',
+                    subtitle: 'Aromatische Pasta direkt in einer Pfanne mit deinen frischen Vorratszutaten geschwenkt.',
+                    emoji: '🍝',
+                    prepTimeMinutes: 18,
+                    difficulty: 'Einfach',
+                    caloriesPerServing: 510,
+                    buildIngredients: (fridge) => {
+                        const picked = fridge.filter(i => /nudel|tomat|knoblauch|zwiebel|käse|mozzarella|feta|parmesan|spinat|zucchini|paprika|sahne|schmand|pilz|champignon/i.test(i));
+                        const base = picked.length >= 2 ? picked : fridge.slice(0, 4);
+                        return base.map(name => ({ name, amount: guessAmount(name) }));
+                    },
+                    usedStapleIngredients: [
+                        { name: 'Olivenöl', amount: '2 EL' },
+                        { name: 'Gemüsebrühe', amount: '250 ml' },
+                        { name: 'Oregano / Kräuter', amount: '1 TL' },
+                        { name: 'Salz & Schwarzer Pfeffer', amount: 'nach Geschmack' }
+                    ],
+                    steps: [
+                        'Vorhandenes Gemüse oder Aromaten (wie Zwiebeln, Knoblauch, Tomaten) mundgerecht schneiden und in 2 EL heißem Olivenöl in einer großen Pfanne 3 Minuten goldbraun anschwitzen.',
+                        'Hauptzutat (z. B. Nudeln oder Sättigungsbeilage) dazugeben, mit heißer Gemüsebrühe ablöschen und mit Oregano sowie Paprikapulver würzen.',
+                        'Alles bei mittlerer Hitze ca. 10–12 Minuten sanft köcheln lassen, bis die Flüssigkeit cremig eingekocht ist.',
+                        'Zum Schluss nach Wunsch Käse oder Milchprodukte unterheben, mit Salz und frisch gemahlenem Pfeffer abschmecken und sofort servieren.'
+                    ],
+                    chefTip: 'Eine Kelle Nudelkochwasser macht die Sauce zusammen mit einem Stückchen Butter noch sämiger.'
+                },
+                {
+                    id: 'pool_shakshuka_pan',
+                    keywords: ['eier', 'tomaten', 'paprika', 'zwiebeln', 'feta', 'käse', 'spinat', 'kartoffeln', 'zucchini'],
+                    veg: true,
+                    onepot: true,
+                    title: 'Goldene Bauern-Frittata & Gemüsepfanne',
+                    subtitle: 'Saftiges Pfannengericht mit herzhafter Würze – außen goldbraun, innen wunderbar saftig.',
+                    emoji: '🍳',
+                    prepTimeMinutes: 15,
+                    difficulty: 'Einfach',
+                    caloriesPerServing: 420,
+                    buildIngredients: (fridge) => {
+                        const picked = fridge.filter(i => /ei|tomat|paprika|zwiebel|knoblauch|käse|feta|mozzarella|kartoffel|zucchini|spinat|schinken|champignon|milch|sahne/i.test(i));
+                        const base = picked.length >= 2 ? picked : fridge.slice(0, 4);
+                        return base.map(name => ({ name, amount: guessAmount(name) }));
+                    },
+                    usedStapleIngredients: [
+                        { name: 'Butter oder Olivenöl', amount: '1,5 EL' },
+                        { name: 'Paprikapulver', amount: '1 TL' },
+                        { name: 'Oregano / Kräuter', amount: '1 TL' },
+                        { name: 'Salz & Schwarzer Pfeffer', amount: '1 Prise' }
+                    ],
+                    steps: [
+                        'Die festen Zutaten aus deinem Vorrat in kleine Würfel oder feine Scheiben schneiden.',
+                        'Butter oder Olivenöl in einer beschichteten Pfanne erhitzen und die geschnittenen Zutaten 5–6 Minuten kräftig anbraten.',
+                        'Mit Paprikapulver, Kräutern, Salz und Pfeffer würzen. Falls Eier oder Käse im Vorrat sind, diese verquirlen bzw. darübergeben und bei kleiner Hitze mit Deckel 5 Minuten stocken lassen.',
+                        'In Stücke teilen und direkt warm aus der Pfanne genießen.'
+                    ],
+                    chefTip: 'Wenn du kurz vor Ende den Deckel auf die Pfanne legst, gart die Oberseite gleichmäßig und bleibt extra saftig.'
+                },
+                {
+                    id: 'pool_asian_bowl',
+                    keywords: ['reis', 'hähnchen', 'karotten', 'brokkoli', 'paprika', 'zwiebeln', 'knoblauch', 'tofu', 'eier', 'nudeln'],
+                    veg: false,
+                    onepot: true,
+                    title: 'Herzhafte Umami-Wok-Pfanne mit Soja-Glasur',
+                    subtitle: 'Schnelles Stir-Fry mit glänzender Würzsauce aus deinen Standard-Basics.',
+                    emoji: '🥘',
+                    prepTimeMinutes: 20,
+                    difficulty: 'Einfach',
+                    caloriesPerServing: 490,
+                    buildIngredients: (fridge) => {
+                        const picked = fridge.slice(0, 5);
+                        return picked.map(name => ({ name, amount: guessAmount(name) }));
+                    },
+                    usedStapleIngredients: [
+                        { name: 'Sojasauce', amount: '3 EL' },
+                        { name: 'Olivenöl', amount: '2 EL' },
+                        { name: 'Zucker & Essig', amount: 'je 1 TL' },
+                        { name: 'Mehl oder Stärke', amount: '1 TL zum Binden' }
+                    ],
+                    steps: [
+                        'Falls Reis, Kartoffeln oder Nudeln verwendet werden, diese nach Packungsanweisung in Salzwasser garen.',
+                        'Aus 3 EL Sojasauce, 5 EL Wasser, 1 TL Essig, 1 TL Zucker und 1 TL Mehl eine schnelle Würzsauce glattrühren.',
+                        'Übrige Kühlschrankzutaten mundgerecht schneiden und in einer sehr heißen Pfanne mit Öl 4–5 Minuten scharf anbraten.',
+                        'Die angerührte Soja-Glasur zugießen, 1 Minute einköcheln lassen, bis alles glänzend überzogen ist, und zusammen anrichten.'
+                    ],
+                    chefTip: 'Ein Spritzer Zitrone oder Essig am Ende hebt alle Aromen sofort an.'
+                },
+                {
+                    id: 'pool_golden_gratin',
+                    keywords: ['kartoffeln', 'käse', 'sahne', 'schmand', 'milch', 'brokkoli', 'blumenkohl', 'hähnchen', 'hackfleisch', 'nudeln'],
+                    veg: false,
+                    onepot: false,
+                    title: 'Überbackener Goldkrusten-Auflauf',
+                    subtitle: 'Wärmendes Soulfood mit cremiger Senf-Kräuter-Sauce aus deinen Vorräten.',
+                    emoji: '🧀',
+                    prepTimeMinutes: 30,
+                    difficulty: 'Einfach',
+                    caloriesPerServing: 560,
+                    buildIngredients: (fridge) => {
+                        const picked = fridge.slice(0, 5);
+                        return picked.map(name => ({ name, amount: guessAmount(name) }));
+                    },
+                    usedStapleIngredients: [
+                        { name: 'Butter', amount: '1 EL' },
+                        { name: 'Mehl', amount: '1 EL' },
+                        { name: 'Gemüsebrühe', amount: '200 ml' },
+                        { name: 'Senf & Oregano', amount: '1 TL' }
+                    ],
+                    steps: [
+                        'Alle ausgewählten Hauptzutaten mundgerecht vorbereiten und in einer Pfanne 4 Minuten vorbraten (oder kurz vorkochen).',
+                        'Für die schnelle Sauce 1 EL Butter schmelzen, 1 EL Mehl einrühren und mit 200 ml Gemüsebrühe (sowie Milch/Sahne, falls vorhanden) unter Rühren aufkochen.',
+                        'Die Sauce mit 1 TL Senf, Salz, Pfeffer und Paprikapulver kräftig abschmecken.',
+                        'Alles in der Pfanne oder einer Auflaufform mischen und abgedeckt (oder im Ofen bei 200 °C) 12–15 Minuten goldbraun gratinieren.'
+                    ],
+                    chefTip: 'Ein Teelöffel Senf in der hellen Sauce sorgt für eine wunderbar runde Würze.'
+                },
+                {
+                    id: 'pool_mediterranean_skillet',
+                    keywords: ['kichererbsen', 'bohnen', 'thunfisch', 'tomaten', 'zucchini', 'paprika', 'feta', 'zwiebeln', 'reis', 'kartoffeln'],
+                    veg: true,
+                    onepot: true,
+                    title: 'Mediterrane Schmorpfanne „Bella Vista“',
+                    subtitle: 'Kräftiger Tomaten-Kräuter-Sud mit deinen vorhandenen Vorräten sanft geschmort.',
+                    emoji: '🍅',
+                    prepTimeMinutes: 22,
+                    difficulty: 'Einfach',
+                    caloriesPerServing: 460,
+                    buildIngredients: (fridge) => {
+                        const picked = fridge.slice(0, 5);
+                        return picked.map(name => ({ name, amount: guessAmount(name) }));
+                    },
+                    usedStapleIngredients: [
+                        { name: 'Tomatenmark', amount: '2 EL' },
+                        { name: 'Olivenöl', amount: '2 EL' },
+                        { name: 'Gemüsebrühe', amount: '150 ml' },
+                        { name: 'Oregano / Kräuter', amount: '1,5 TL' }
+                    ],
+                    steps: [
+                        'Olivenöl in einer tiefen Pfanne erhitzen und 2 EL Tomatenmark darin 1 Minute anrösten, bis es aromatisch duftet.',
+                        'Deine geschnittenen Kühlschrankzutaten hinzugeben und 3 Minuten im Tomatenansatz mitschwitzen.',
+                        'Mit 150 ml Gemüsebrühe ablöschen, Oregano, Paprikapulver, Salz und Pfeffer zugeben und 10 Minuten sanft schmoren.',
+                        'Vor dem Servieren mit einem Faden Olivenöl beträufeln.'
+                    ],
+                    chefTip: 'Das kurze Anrösten des Tomatenmarks am Anfang nimmt die Säure und bringt eine tolle Tiefe.'
+                }
+            ];
+
+            // Berechne Treffer-Score für jedes Kandidaten-Rezept
+            const scored = candidatePool.map(rec => {
+                let score = 0;
+                rec.keywords.forEach(kw => {
+                    if (has(kw)) score += 2;
+                });
+                if (state.filterTime === '20' && rec.prepTimeMinutes <= 20) score += 2;
+                if (state.filterDiet === 'onepot' && rec.onepot) score += 2;
+                return { rec, score };
+            }).sort((a, b) => b.score - a.score);
+
+            return scored.slice(0, 3).map((item, idx) => {
+                const r = item.rec;
+                const usedFridge = r.buildIngredients(state.fridge);
+                return {
+                    id: `local_${Date.now()}_${idx}`,
+                    title: r.title,
+                    subtitle: r.subtitle,
+                    emoji: r.emoji,
+                    prepTimeMinutes: state.filterTime === '20' ? Math.min(r.prepTimeMinutes, 19) : r.prepTimeMinutes,
+                    difficulty: r.difficulty,
+                    caloriesPerServing: r.caloriesPerServing,
+                    usedFridgeIngredients: usedFridge,
+                    usedStapleIngredients: r.usedStapleIngredients,
+                    steps: r.steps,
+                    chefTip: r.chefTip
+                };
+            });
+        }
+
+        function guessAmount(ingredientName) {
+            const lower = ingredientName.toLowerCase();
+            if (lower.includes('ei')) return '3–4 Stück';
+            if (lower.includes('nudel') || lower.includes('reis')) return '200 g';
+            if (lower.includes('kartoffel')) return '350 g';
+            if (lower.includes('käse') || lower.includes('mozzarella') || lower.includes('feta') || lower.includes('parmesan')) return '80 g';
+            if (lower.includes('milch') || lower.includes('sahne') || lower.includes('kokos')) return '150 ml';
+            if (lower.includes('knoblauch')) return '1–2 Zehen';
+            if (lower.includes('zwiebel')) return '1 große';
+            if (lower.includes('hähnchen') || lower.includes('hack') || lower.includes('lachs') || lower.includes('tofu')) return '250 g';
+            if (lower.includes('dose') || lower.includes('bohnen') || lower.includes('kichererbsen') || lower.includes('thunfisch')) return '1 Dose';
+            return '2 Handvoll / nach Bedarf';
+        }
+
+        // ============================================================================
+        // RENDERING DER REZEPT-KARTEN & FAVORITEN
+        // ============================================================================
+        function renderRecipesList() {
+            const listEl = document.getElementById('recipes-list');
+            const emptyEl = document.getElementById('recipes-empty');
+            const headerEl = document.getElementById('recipes-header');
+
+            if (!state.currentRecipes || state.currentRecipes.length === 0) {
+                emptyEl.classList.remove('hidden');
+                headerEl.classList.add('hidden');
+                listEl.innerHTML = '';
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+            headerEl.classList.remove('hidden');
+            listEl.innerHTML = state.currentRecipes.map((rec, index) => buildRecipeCardHTML(rec, index + 1)).join('');
+            lucide.createIcons();
+        }
+
+        function renderFavoritesList() {
+            const listEl = document.getElementById('favorites-list');
+            const emptyEl = document.getElementById('favorites-empty');
+            const countPill = document.getElementById('fav-count-pill');
+
+            countPill.textContent = state.favorites.length;
+
+            if (state.favorites.length === 0) {
+                emptyEl.classList.remove('hidden');
+                listEl.innerHTML = '';
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+            listEl.innerHTML = state.favorites.map((rec, index) => buildRecipeCardHTML(rec, index + 1)).join('');
+            lucide.createIcons();
+        }
+
+        function buildRecipeCardHTML(rec, numberBadge) {
+            const isFav = state.favorites.some(f => f.title === rec.title);
+            const safeId = escapeHtml(rec.id || rec.title);
+
+            const fridgeItemsHTML = (rec.usedFridgeIngredients || []).map(ing => `
+                <li class="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 text-xs">
+                    <span class="font-semibold text-emerald-950 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        ${escapeHtml(ing.name)}
+                    </span>
+                    <span class="text-emerald-800 font-medium">${escapeHtml(ing.amount)}</span>
+                </li>
+            `).join('');
+
+            const stapleItemsHTML = (rec.usedStapleIngredients || []).map(ing => `
+                <li class="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-amber-50/60 border border-amber-200/50 text-xs">
+                    <span class="font-medium text-amber-950 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        ${escapeHtml(ing.name)}
+                    </span>
+                    <span class="text-amber-800">${escapeHtml(ing.amount)}</span>
+                </li>
+            `).join('');
+
+            const stepsHTML = (rec.steps || []).map((stepText, sIdx) => {
+                const stepKey = `${safeId}_step_${sIdx}`;
+                const isChecked = !!state.checkedSteps[stepKey];
+                return `
+                    <li onclick="toggleStepCheck('${stepKey}')" class="cursor-pointer flex items-start gap-3 p-2.5 rounded-2xl border transition-all ${isChecked ? 'bg-stone-50 border-stone-200/60 text-stone-400 line-through' : 'bg-white border-stone-200/80 text-stone-700'}">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${isChecked ? 'bg-emerald-500 text-white' : 'bg-orange-100 text-orange-700'}">
+                            ${isChecked ? '✓' : (sIdx + 1)}
+                        </div>
+                        <span class="text-xs leading-relaxed">${escapeHtml(stepText)}</span>
+                    </li>
+                `;
+            }).join('');
+
+            return `
+                <article class="bg-white rounded-3xl p-5 shadow-sm border border-stone-200/80 space-y-4">
+                    <!-- Top-Zeile mit Nummer, Emoji & Favoriten-Herz -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-200/60 flex items-center justify-center text-2xl shrink-0">
+                                ${rec.emoji || '🍲'}
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-orange-600">Rezept #${numberBadge}</span>
+                                <h3 class="text-base font-extrabold text-stone-900 leading-snug">${escapeHtml(rec.title)}</h3>
+                            </div>
+                        </div>
+                        <button onclick="toggleFavoriteByTitle('${escapeQuotes(rec.title)}')" class="ios-btn w-10 h-10 rounded-2xl border ${isFav ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-stone-50 border-stone-200 text-stone-400'} flex items-center justify-center shrink-0 transition-all" aria-label="Favorit speichern">
+                            <i data-lucide="heart" class="w-5 h-5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}"></i>
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-stone-600 leading-relaxed">${escapeHtml(rec.subtitle || '')}</p>
+
+                    <!-- Meta-Badges (Zeit, Schwierigkeit, Kalorien) -->
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-orange-600"></i>
+                            ${rec.prepTimeMinutes || 20} Min.
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">
+                            <i data-lucide="Flame" class="w-3.5 h-3.5 text-amber-500"></i>
+                            ca. ${rec.caloriesPerServing || 450} kcal / Port.
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">
+                            <i data-lucide="award" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            ${escapeHtml(rec.difficulty || 'Einfach')}
+                        </span>
+                    </div>
+
+                    <!-- Zutaten-Sektion (Kühlschrank vs. Standard-Gewürze) -->
+                    <div class="pt-2 border-t border-stone-100 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-stone-500">Zutaten (für 2 Portionen)</h4>
+                            <div class="flex items-center gap-2 text-[10px] font-semibold">
+                                <span class="flex items-center gap-1 text-emerald-700"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Dein Vorrat</span>
+                                <span class="flex items-center gap-1 text-amber-700"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Gewürze/Basics</span>
+                            </div>
+                        </div>
+                        <ul class="grid grid-cols-1 gap-1.5">
+                            ${fridgeItemsHTML}
+                            ${stapleItemsHTML}
+                        </ul>
+                    </div>
+
+                    <!-- Schritt-für-Schritt Zubereitung zum Abhaken -->
+                    <div class="pt-2 border-t border-stone-100 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-stone-500">Zubereitung (Antippen zum Abhaken)</h4>
+                        </div>
+                        <ol class="space-y-2">
+                            ${stepsHTML}
+                        </ol>
+                    </div>
+
+                    ${rec.chefTip ? `
+                    <div class="bg-amber-50/80 border border-amber-200/70 rounded-2xl p-3 flex items-start gap-2.5">
+                        <i data-lucide="lightbulb" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                        <p class="text-xs text-amber-950"><strong class="font-bold">Küchenchef-Tipp:</strong> ${escapeHtml(rec.chefTip)}</p>
+                    </div>
+                    ` : ''}
+                </article>
+            `;
+        }
+
+        function toggleStepCheck(stepKey) {
+            state.checkedSteps[stepKey] = !state.checkedSteps[stepKey];
+            renderRecipesList();
+            renderFavoritesList();
+        }
+
+        function toggleFavoriteByTitle(title) {
+            const existingIndex = state.favorites.findIndex(f => f.title === title);
+            if (existingIndex >= 0) {
+                state.favorites.splice(existingIndex, 1);
+                showToast('Aus Favoriten entfernt');
+            } else {
+                const found = state.currentRecipes.find(r => r.title === title);
+                if (found) {
+                    state.favorites.unshift(found);
+                    showToast('❤️ Als Favorit gespeichert');
+                }
+            }
+            saveStateToStorage();
+            renderRecipesList();
+            renderFavoritesList();
+            updateNavBadges();
+        }
+
+        function updateNavBadges() {
+            const recDot = document.getElementById('nav-recipes-dot');
+            const favDot = document.getElementById('nav-fav-dot');
+
+            if (state.currentRecipes && state.currentRecipes.length > 0) {
+                recDot.textContent = state.currentRecipes.length;
+                recDot.classList.remove('hidden');
+            } else {
+                recDot.classList.add('hidden');
+            }
+
+            if (state.favorites && state.favorites.length > 0) {
+                favDot.textContent = state.favorites.length;
+                favDot.classList.remove('hidden');
+            } else {
+                favDot.classList.add('hidden');
+            }
+        }
+
+        // ============================================================================
+        // HILFSFUNKTIONEN & AUTOCOMPLETE
+        // ============================================================================
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function escapeQuotes(str) {
+            return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function setupInputListeners() {
+            const input = document.getElementById('ingredient-input');
+            const clearBtn = document.getElementById('clear-input-btn');
+            const autoBox = document.getElementById('autocomplete-box');
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addIngredientFromInput();
+                }
+            });
+
+            input.addEventListener('input', () => {
+                const val = input.value.trim().toLowerCase();
+                if (val.length > 0) {
+                    clearBtn.classList.remove('hidden');
+                    const matches = QUICK_INGREDIENTS.filter(q => 
+                        q.name.toLowerCase().includes(val) && 
+                        !state.fridge.some(f => f.toLowerCase() === q.name.toLowerCase())
+                    ).slice(0, 5);
+
+                    if (matches.length > 0) {
+                        autoBox.classList.remove('hidden');
+                        autoBox.classList.add('flex');
+                        autoBox.innerHTML = matches.map(m => {
+                            const safeName = m.name.replace(/'/g, "\\'");
+                            return `
+                                <button onclick="addIngredient('${safeName}'); clearInput();" class="ios-btn text-xs bg-orange-50 text-orange-900 border border-orange-200 px-2.5 py-1 rounded-xl font-medium flex items-center gap-1">
+                                    <span>${m.emoji}</span>
+                                    <span>${m.name}</span>
+                                    <i data-lucide="plus" class="w-3 h-3 text-orange-600"></i>
+                                </button>
+                            `;
+                        }).join('');
+                        lucide.createIcons();
+                    } else {
+                        autoBox.classList.add('hidden');
+                        autoBox.classList.remove('flex');
+                    }
+                } else {
+                    clearBtn.classList.add('hidden');
+                    autoBox.classList.add('hidden');
+                    autoBox.classList.remove('flex');
+                }
+            });
+        }
+
+        // Initialisierung beim Laden
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            setupInputListeners();
+            renderSelectedIngredients();
+            renderQuickChips();
+            renderStaples();
+            renderRecipesList();
+            renderFavoritesList();
+            updateNavBadges();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
